@@ -6,7 +6,7 @@ Table Of Contents::
 	2. Installing mod_hoverin
 	3. Configuring mod_hoverin
 	4. Troubleshooting
-	
+	5. Known Issues with mod_hoverin
 1. Prerequisites:
 	1.1 In order to be able to install this module the user will need the apache development headers installed. Check your operating system's manual for installing the apache development headers.
 	
@@ -31,41 +31,66 @@ Table Of Contents::
 	
 	2.3 Now run the following commands
 		
-		$./configure
+		$./configure --with-site=http://mywebsite.com
 		
 		$make
 		
 		$sudo make install
 		
-	If the above commands run successfully without any errors, then the module should be installed and activated. In case you encountered any problem, 		please see the Troubleshooting section.
+		NOTE:	1. The --with-site option to configure is necessary, you need to tell your website's fully qualified domain name on which you want to 					run	this module. If you don't supply that parameter, the installation won't procede.
+		
+				2. After completing the installation, the setup will automatically download the header and footer files (necessary for this module to 					work) from hover.in's server and store them in the mod_hoverin's source directory by the names "header.html" and "footer.html" .
+				Please store those files in a directory of your choice. You will need to specify their locations while configuring mod_hoverin (See 				section 3.1).
+					
+		If the above commands run successfully without any errors, then the module should be installed and activated. In case you encountered any 			problem, please see the Troubleshooting section.
 
-	Great, the only thing left is setting up the configuration directives. See that in the next section.
+		Great, the only thing left is setting up the configuration directives. See that in the next section.
 
 3. Configuring mod_hoverin:
 	
 	3.1 Directives required by mod_hoverin-
-		following directives need to provided in the configuration file of the server (usually httpd.conf, but you may check the OS manual )
+		Following directives need to provided in the configuration file of the server (usually httpd.conf, but you may check the OS manual )
 		
 		AddOutputFilterByType hoverin-filter text/html text/plain
-		Header "/usr/local/apache2/htdocs/hoverin/header.html"
-		Footer "/usr/local/apache2/htdocs/hoverin/footer.html"
+		mod_hoverin_header "/usr/local/apache2/htdocs/hoverin/header.html"
+		mod_hoverin_footer "/usr/local/apache2/htdocs/hoverin/footer.html"
 		
 		*	AddOutputFilterByType directive takes the name of the module as its first argument (hoverin-filter) and the type of requests it is 				suppossed to filter (text/html and text/plain).
-		*	Header and Footer are the configuration directives implemented by mod_hoverin. They should point to the the header and footer documents on
-			the server file system which need to be added to the response body.
+		*	mod_hoverin_header and mod_hoverin_footer are the configuration directives implemented by mod_hoverin. They should point to the the header 				and footer documents on	the server file system .
 			
-	3.2 You can also configure mod_hoverin to work only for a particular host or domain through the VirtualHost directive. For example following is the 
-		configuration for the module to work only for requests for localhost.
+	3.2 You can also configure mod_hoverin to work only for a particular host or domain through the VirtualHost directive. 
+		
+		Example Configuration 1. -> Following is the configuration for the module to work only for requests for localhost.
 		
 		<VirtualHost 127.0.0.1>
-		DocumentRoot /usr/local/apache2/htdocs/hoverin/
-		ServerName localhost
+		#the root directory wrt which documents are served (much like /var/www/).
+		DocumentRoot /usr/local/apache2/htdocs/mywebsite/		
+		#host name.
+		ServerName localhost								
+		#mod_hoverin's directives
 		AddOutputFilterByType hoverin-filter text/html text/plain
 		Header "/usr/local/apache2/htdocs/hoverin/header.html"
 		Footer "/usr/local/apache2/htdocs/hoverin/footer.html"
 		</VirtualHost>
 		
-	3.3 Similarly you can also configure the module to work only for requests for a particualr URL by usinc the Location directive.
+		Example Configuration 2. -> Most probably you would like the module to work only for subdomains like onhover.mywebsite or onclick.mywebsite.
+		Here is the configuration
+		
+		<VirtualHost 56.64.112.10>
+		#the root directory wrt which documents are served (much like /var/www/).
+		DocumentRoot /usr/local/apache2/htdocs/mywebsite/		
+		#host name.
+		ServerName onhover.mywebsite.com
+		#mod_hoverin's directives
+		AddOutputFilterByType hoverin-filter text/html text/plain
+		Header "/usr/local/apache2/htdocs/hoverin/header.html"
+		Footer "/usr/local/apache2/htdocs/hoverin/footer.html"
+		</VirtualHost>
+		
+		NOTE: Replace 56.64.112.10 with your server's IP address. 
+		You should have a DNS record that points your subdomain to your server's IP address. 
+		
+	3.3 Similarly you can also configure the module to work only for requests for a particualr URL by using the Location directive.
 	
 	3.4 You can configure the module as per your requirements using the VirtualHost, Location, Directory and other container directives, it should work 		without any problems. But the directives specified in 3.1 are absolutely necessary for the module to work.
 	
@@ -105,6 +130,15 @@ Table Of Contents::
 			/usr/local/apache2/conf/httpd.conf
 	
 
+5. Known Issues with mod_hoverin:
+	
+	Following issues exist with the current version of mod_hoverin-
+	
+	5.1 In case your domain and sub domain both point to the same IP address in the DNS records then mod_hoverin will be processing requests for both 			of them (your sub domains and domain). 
+		In most cases you would not want this to be happening, so the only solution for this is to have a different IP for your Domain (lets say
+		mydomain.com) and different for all other sub domains (say onhover.mydomain.com, onclick.mydomain.com, etc.)
+		So for example you could have an IP 56.84.112.10 for mydomain.com and an IP 56.84.112.12 for all other of your subdomains. This will work
+		without any problems.
  
 				
 

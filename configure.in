@@ -56,6 +56,27 @@ AC_ARG_WITH(apxs,
 	fi
 ])
 
+dnl Check if the user has supplied his site name
+AC_MSG_CHECKING(for site)
+AC_ARG_WITH(site,
+[	--with-site[=SITE]	Tell us your website name, so that we may provide you
+						with the directives that you will need in order to 
+						configure this moduel.],
+[
+	if test "$withval" = "yes"; then
+		withval=site
+	fi
+	SITE="$withval"
+	
+	AC_SUBST(SITE)
+	AC_MSG_RESULT(Yes)
+		
+],
+[
+	AC_MSG_RESULT(no)
+	AC_MSG_ERROR([Please supply your site's URL with the --with-site option])
+])
+
 dnl Add test for a compiler.
 dnl AC_CHECK_COMPILERS
 AC_PROG_CC
@@ -93,7 +114,7 @@ AC_CHECK_FUNCS([memmove])
 
 dnl Checks for programs
 AC_PROG_INSTALL
-
+AC_CHECK_PROGS(WGET, wget curl, "no")
 dnl Checks for header files
 AC_HEADER_STDC
 

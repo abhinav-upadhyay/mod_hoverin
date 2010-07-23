@@ -1,2 +1,18 @@
+Friday 23 July 2010 	Abhinav Upadhyay	<abhinav@hover.in>
+	1.	Changed the module's implemente directives from "Header" and "Footer" to "mod_hoverin_header"
+		and "mod_hoverin_footer" respectively.
+		
+	2.	Added a required argument "site" to the configure script, that will be used to display sample
+		directives to the user at the end of installation.
+	
+	3.	Added support to the setup to download the header and footer files from the hover.in server from
+		following URLs:
+		http://start.hover.in/mod_hoverin/1/header.html
+		http://start.hover.in/mod_hoverin/1/footer.html
+		
+	4.	Updated the documentation in README as per the above changes.
+	
+	
+
 Thursday 08 July 2010	Abhinav Upadhyay	<abhinav@hover.in>
-	Initial release v1.0
+	1. Initial release

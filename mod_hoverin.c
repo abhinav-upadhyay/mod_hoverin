@@ -204,10 +204,10 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 */
 
 static const command_rec hoverin_cmds[] = {
-	AP_INIT_TAKE1("Header", ap_set_file_slot,
+	AP_INIT_TAKE1("mod_hoverin_header", ap_set_file_slot,
 				  (void *) APR_OFFSETOF(hoverin_dir_cfg, header), OR_ALL,
 				   "Header File"),
-	AP_INIT_TAKE1("Footer", ap_set_file_slot, 
+	AP_INIT_TAKE1("mod_hoverin_footer", ap_set_file_slot, 
 				  (void *) APR_OFFSETOF(hoverin_dir_cfg, footer), OR_ALL, 
 				  "Footer File"),
 	{ NULL }
