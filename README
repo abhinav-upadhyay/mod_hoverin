@@ -7,6 +7,8 @@ Table Of Contents::
 	3. Configuring mod_hoverin
 	4. Troubleshooting
 	5. Known Issues with mod_hoverin
+	
+	
 1. Prerequisites:
 	1.1 In order to be able to install this module the user will need the apache development headers installed. Check your operating system's manual for installing the apache development headers.
 	

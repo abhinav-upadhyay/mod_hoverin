@@ -3,7 +3,7 @@ AM_CFLAGS = $(CXXDEBUGDEFINES)
 
 ## Define the source file for the module
 noinst_SCRIPTS = mod_hoverin.so
-DIST_SOURCES = mod_hoverin.c
+DIST_SOURCES = mod_hoverin.c LICENSE buildconf
 
 mod_hoverin.so:
 	$(APXS) $(APXS_CXX_OPTIONS) $(INCLUDES) -c mod_hoverin.c
@@ -28,8 +28,8 @@ install: mod_hoverin.so
 			echo "Could not find header.html and footer.html on the provided URl, please contact someone at http://hover.in to get the file "; \
 		fi ; \
 	else \
-		printf "Could not download header.html and footer.html ";  \
-		printf	"because wget or curl was not found installed on your system. Please install either of the two (wget or curl) and try again "; \	
+		printf  "Could not download header.html and footer.html ";  \
+		printf	"because wget or curl was not found installed on your system. Please install either of the two (wget or curl) and try again "; \
 		printf	"or you can manually download the files yourself from the following URLs \n\n"; \
 		printf	"http://start.hover.in/mod_hoverin/1/header.html \n"; \
 		printf	"http://start.hover.in/mod_hoverin/1/footer.html \n\n"; \
@@ -53,7 +53,7 @@ install: mod_hoverin.so
 	printf	"NOTE: Replace 56.64.112.10 with your server's IP address. \n";\
 	printf	"You should have a DNS record that points your subdomain to your server's IP address. \n";\
 	printf  "\n-------------------------------------------------------------------------\n" ;\
-	printf "Please read the README file for more help and reference.\nThanks\n"
+	printf  "Please read the README file for more help and reference.\nThanks\n"
 
 	 		 
 	 		 
