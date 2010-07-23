@@ -1,0 +1,15 @@
+*~
+mod_hoverin.*
+!mod_hoverin.c
+config.*
+.libs/*
+*.m4
+autom4te.cache
+configure
+INSTALL
+install-sh
+libtool
+ltmain.sh
+Makefile.in
+missing
+Makefile

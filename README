@@ -1,0 +1,110 @@
+mod_hoverin: 
+Author: Abhinav Upadhyay (abhinav@hover.in)
+
+Table Of Contents::
+	1. Prerequisites
+	2. Installing mod_hoverin
+	3. Configuring mod_hoverin
+	4. Troubleshooting
+	
+1. Prerequisites:
+	1.1 In order to be able to install this module the user will need the apache development headers installed. Check your operating system's manual for installing the apache development headers.
+	
+		1.1.1 On Ubuntu it can be installed by
+		$sudo apt-get install apache2-prefork-dev 
+		(assuming that the apache installed is also based on the prefork MPM,for threaded MPM, replace apache2-prefork-dev by apache2-threaded-dev )
+		
+		1.1.2	On Redhat systems it is usually called httpd-dev package (Please check the manual).
+		
+	1.2 You will also need GNU make (or any other equivalent make tool) installed on your system. On ubuntu you can install it by following command
+		
+		$sudo apt-get install build-essential 
+		
+		For other distros you may check your vendor's manual or online documentation.
+	
+2. Installing mod_hoverin:
+	2.1 Extract the source code into a directory of your choice-
+		$tar -zxvf mod_hoverin-1.0.tar.gz
+		
+	2.2 After extracting the source, cd to that directory
+		$cd mod_hoverin-1.0/
+	
+	2.3 Now run the following commands
+		
+		$./configure
+		
+		$make
+		
+		$sudo make install
+		
+	If the above commands run successfully without any errors, then the module should be installed and activated. In case you encountered any problem, 		please see the Troubleshooting section.
+
+	Great, the only thing left is setting up the configuration directives. See that in the next section.
+
+3. Configuring mod_hoverin:
+	
+	3.1 Directives required by mod_hoverin-
+		following directives need to provided in the configuration file of the server (usually httpd.conf, but you may check the OS manual )
+		
+		AddOutputFilterByType hoverin-filter text/html text/plain
+		Header "/usr/local/apache2/htdocs/hoverin/header.html"
+		Footer "/usr/local/apache2/htdocs/hoverin/footer.html"
+		
+		*	AddOutputFilterByType directive takes the name of the module as its first argument (hoverin-filter) and the type of requests it is 				suppossed to filter (text/html and text/plain).
+		*	Header and Footer are the configuration directives implemented by mod_hoverin. They should point to the the header and footer documents on
+			the server file system which need to be added to the response body.
+			
+	3.2 You can also configure mod_hoverin to work only for a particular host or domain through the VirtualHost directive. For example following is the 
+		configuration for the module to work only for requests for localhost.
+		
+		<VirtualHost 127.0.0.1>
+		DocumentRoot /usr/local/apache2/htdocs/hoverin/
+		ServerName localhost
+		AddOutputFilterByType hoverin-filter text/html text/plain
+		Header "/usr/local/apache2/htdocs/hoverin/header.html"
+		Footer "/usr/local/apache2/htdocs/hoverin/footer.html"
+		</VirtualHost>
+		
+	3.3 Similarly you can also configure the module to work only for requests for a particualr URL by usinc the Location directive.
+	
+	3.4 You can configure the module as per your requirements using the VirtualHost, Location, Directory and other container directives, it should work 		without any problems. But the directives specified in 3.1 are absolutely necessary for the module to work.
+	
+
+4. Troubleshooting: 
+
+	In case you encountered some error during installing the module then please see below, I will disucss a few common causes of errors and problems. 
+	If this doesn't solve your problem then please mail me at abhinav@hover.in
+	
+	4.1 configure: error: APXS not found in $PATH, please use --with-apxs to specify the location of the apxs binary
+		
+		In case you encountered the above error on executing ./configure then it may mean the following:
+		4.1.1 You don't have the Apache development headers installed (these are the prerequisites). Please check you Operating system's manual
+				for installing the apache development headers and try again, it should work then.
+		4.1.2 If you installed Apache from source then you need to specify the location of the "apxs" tool to configure using the --with-apxs option, 					for example:
+				./configure --with-apxs=/usr/local/apache2/bin/apxs 
+		4.1.3 It may also be possible that you installed the apache development headers but apxs is not on the system path, in that case you should
+				specify location of apxs to configure using the --with-apxs option (just like in 4.1.2).
+	
+	4.2 You need root privileges for installing the module, if you don't have root password, then you may not be able to install the module.
+		You may get following error if you try to install without root access:
+			apxs:Error: Command failed with rc=65536
+	
+	
+	4.3 You may also get the error "No command 'make' found" :
+	
+		4.3.1 It means that you don't have GNU make installed on your system. Please install make and try again.
+		
+	4.4 If the module installs properly and is activated, but you still don't see it in effect, then you may not have set the configuration
+		directives required by the module as described in the configuration section (3.1).
+
+	4.5 If you are not able to find the configuration file for your apache, then please go to the following URL and see the directory layout of apache 			for your particular OS:
+			http://wiki.apache.org/httpd/DistrosDefaultLayout
+		Most of the distros usually mess with directory structure of Apache and scatter it among different directories in the filesystem. Its best to 			check your distro's setting either in your vendor's documentation or at the above given link.
+		
+		In case you installed apache from source, then the default configuration file is:
+			/usr/local/apache2/conf/httpd.conf
+	
+
+ 
+				
+
