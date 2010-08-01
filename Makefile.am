@@ -39,19 +39,16 @@ install: mod_hoverin.so
 	@printf "\n-------------------------------------------------------------------------\n"; \
 	printf  "YOU NEED TO SETUP FOLLOWING DIRECTIVES FOR CONFIGURING THIS MODULE\n";\
 	printf  "\n";\
-	printf  "<VirtualHost 56.64.112.10>\n";\
-	printf	"#the root directory with respect to which documents are served.\n";\
-	printf	"DocumentRoot /usr/local/apache2/htdocs/\n";\
-	printf	"#host name\n";\
-	printf	"ServerName onhover.%s\n" $(SITE);\
 	printf	"#mod_hoverin's directives\n";\
+	printf	"mod_hoverin_hosts onhover.";\
+	printf  $(SITE);\
+	printf  " onclick.";\
+	printf  $(SITE);\
+	printf  "\n";\
 	printf	"AddOutputFilterByType hoverin-filter text/html text/plain\n";\
 	printf	"Header \"/usr/local/apache2/htdocs/hoverin/header.html\"\n";\
 	printf	"Footer \"/usr/local/apache2/htdocs/hoverin/footer.html\"\n";\
-	printf	"</VirtualHost>\n";\
 	printf	"\n";\
-	printf	"NOTE: Replace 56.64.112.10 with your server's IP address. \n";\
-	printf	"You should have a DNS record that points your subdomain to your server's IP address. \n";\
 	printf  "\n-------------------------------------------------------------------------\n" ;\
 	printf  "Please read the README file for more help and reference.\nThanks\n"
 

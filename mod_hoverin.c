@@ -11,15 +11,20 @@ module AP_MODULE_DECLARE_DATA hoverin_module  ;
 typedef struct {
 	const char *header;
 	const char *footer;
+	apr_table_t *hosts;
 } hoverin_dir_cfg;
 
 /* filter context data structure f->ctx */
 typedef struct {
 	apr_bucket *head;
 	apr_bucket *foot;
+	apr_table_t *hosts;
 	unsigned int state;
 } hoverin_ctx;
 
+
+
+/* Name of the filter-module */
 static const char *name = "hoverin-filter";
 
 #define TXT_HEAD 0x01
@@ -137,7 +142,9 @@ static void add_comment(request_rec *r, apr_bucket_brigade *bb)
 */
 static void* hoverin_dir_config(apr_pool_t *pool, char *val)
 {
-	return (apr_pcalloc(pool, sizeof(hoverin_dir_cfg)));
+	hoverin_dir_cfg *config = apr_pcalloc(pool, sizeof(hoverin_dir_cfg));
+	config->hosts = apr_table_make(pool, 10);
+	return config;
 }
 
 static void* hoverin_dir_merge(apr_pool_t *pool, void *old, void *new)
@@ -146,10 +153,10 @@ static void* hoverin_dir_merge(apr_pool_t *pool, void *old, void *new)
 	hoverin_dir_cfg *n = (hoverin_dir_cfg *) new;
 	hoverin_dir_cfg *config = apr_palloc(pool, sizeof(hoverin_dir_cfg));
 	config->header = o->header ? o->header : n->header;
-	config->footer = n->footer ? n->footer : n->footer;
+	config->footer = o->footer ? o->footer : n->footer;
+	config->hosts =  o->hosts ? o->hosts : n->hosts;
 	return (void *) config;
 }
-    
 
 
 /* filter initialization function */
@@ -161,6 +168,7 @@ static int hoverin_filter_init(ap_filter_t *f)
 	
 	ctx->head = hoverin_file_bucket(f->r, conf->header);
 	ctx->foot = hoverin_file_bucket(f->r, conf->footer);
+	ctx->hosts = conf->hosts;
 	return OK;
 }
 
@@ -168,10 +176,21 @@ static int hoverin_filter_init(ap_filter_t *f)
 static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 {
 	apr_bucket *b;
+	char *current_host = f->r->hostname;
+	
+	
 	hoverin_ctx *ctx = (hoverin_ctx *) f->ctx;
 	if (ctx == NULL) {
 		hoverin_filter_init(f);
 		ctx = (hoverin_ctx *) f->ctx;
+	}
+	
+	/** Check if the module should work for this host or not */												 
+	if (apr_table_get(ctx->hosts, current_host) == NULL) {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "mod_hoverin: "
+						"Invalid host: %s", current_host);
+		return ap_pass_brigade(f->next, bb);
+		
 	}
 	
 	/*	Insert the footer at the end of the brigade. */
@@ -196,6 +215,13 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 	return ap_pass_brigade(f->next, bb);
 }
 
+static const char *set_allowed_hosts(cmd_parms *parms, void *dummy, 
+									const char *arg)
+{
+	hoverin_dir_cfg *config = dummy;
+	apr_table_add(config->hosts, arg, (const char *)"A");
+	return NULL;
+}
 
 
 /* following is the regular Apache Module stuff, the rudimentary functions 
@@ -210,6 +236,8 @@ static const command_rec hoverin_cmds[] = {
 	AP_INIT_TAKE1("mod_hoverin_footer", ap_set_file_slot, 
 				  (void *) APR_OFFSETOF(hoverin_dir_cfg, footer), OR_ALL, 
 				  "Footer File"),
+	AP_INIT_ITERATE("mod_hoverin_hosts", set_allowed_hosts, NULL, OR_ALL,
+					"A list of hosts on which this module listens" ),
 	{ NULL }
 };
 
