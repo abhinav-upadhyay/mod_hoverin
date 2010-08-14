@@ -4,6 +4,7 @@
 #include <util_filter.h>
 #include <http_config.h>
 #include <apr_strmatch.h>
+#include <apr_hash.h>
 /* All function names starting with hoverin : like a namespace */
 module AP_MODULE_DECLARE_DATA hoverin_module  ;
 
@@ -59,28 +60,24 @@ static apr_bucket* hoverin_file_bucket(request_rec *r, const char *fname)
 								  r->connection->bucket_alloc);
 }
 
-/*  add_comment function scans the passed in brigade bb for the closing head tag,
+/** insert_text function scans the passed in brigade bb for the closing head tag,
 *	if it finds the closing head tag (</head>) it will attach the current URL in
 *	the form of	a comment before the closing head tag (</head>)
 *	params:
 *		@r: request_rec object representing current request.
 *		@bb; apr_bucket_brigade object that contains the complete html response
 */
-static void add_comment(request_rec *r, apr_bucket_brigade *bb)
+static void insert_text(request_rec *r, apr_bucket_brigade *bb, char *place,
+						const char *text)
 {
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "in insert_text");
 	apr_bucket *b;
 	const char *buf;
 	const char *tag;
 	int sz, flag = 0;
 	size_t offset = 0;
 	
-	/* construct the url */
-	const char *url =(const char *) ap_construct_url(r->pool, 
-													 (const char *) r->uri, r);
 	
-	/* build the comment by concatenating the url and the comment syntax */
-	const char *my_comment = (const char *) apr_pstrcat(r->pool, "<!-- ", url,
-														" -->", NULL);
 														
 	/* loop through the bucket brigade and read each bucekt to scan for the
 	*	closing head tag </head>
@@ -88,16 +85,20 @@ static void add_comment(request_rec *r, apr_bucket_brigade *bb)
 	for (b = APR_BRIGADE_FIRST(bb) ;
 		 b != APR_BRIGADE_SENTINEL(bb) ;
 		 b = APR_BUCKET_NEXT(b) ) {
+		 ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "reading buf");
 		apr_bucket_read(b, &buf, &sz, APR_BLOCK_READ);
 		if (buf == NULL) {
 			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "mod_hoverin: buf = NULL");
 			return;
 		}
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "buf read");
 		/* check if the buffer contains </head>,
 		*  ap_strcasestr will return the pointer to the starting of </head>
 		*  if it finds it else NULL.
 		*/
-		tag = ap_strcasestr(buf, "</head>");
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "reading tag");
+		tag = ap_strcasestr(buf, place);
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "tag read");
 		if (tag != NULL) {
 						
 			/*	calculate the position (offset) where to split the bucket-
@@ -106,15 +107,17 @@ static void add_comment(request_rec *r, apr_bucket_brigade *bb)
 			*	address of the buffer (buf) and starting address of </head> tag
 			*	(tag),that will be the offset of </head>, within the bucket
 			*/
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "calculating offset");
 			offset = ((unsigned int) tag - (unsigned int) buf )/sizeof(char) ;
-						
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "offset calculated");			
 			/*  split the bucket at the calculated offset.
 			*	The current bucket will be broken down into 2 buckets,
 			*	the first bucket will contain data upto the point of offset,
 			*	rest of data will be in the next (newly created) bucket.
 			*/
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "splitting the bucket");
 			apr_bucket_split(b, offset);
-						
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "bucket splitted");			
 			/*	after the split the first bucket will contain data before
 			* 	</head> and	the next bucket will containg data starting from
 			*	</head> and onwards. So we will move to the NEXT bucket,
@@ -123,18 +126,84 @@ static void add_comment(request_rec *r, apr_bucket_brigade *bb)
 			b = APR_BUCKET_NEXT(b);
 			APR_BUCKET_INSERT_BEFORE(b,
 				  					 apr_bucket_transient_create(
-				  					 (const char *)my_comment, strlen(my_comment),
+				  					 (const char *)text, strlen(text),
 				  					 r->connection->bucket_alloc ));
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "text inserted");
 			/* 	Increment the flag, so that we may know that </head> tag was found
 			*	and we can break out from the loop 
 			*/
 			flag++;
 		}
 		if (flag) {
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "flag is positive");
 			return;
 		}
 	}
 }
+
+
+static void add_comment(request_rec *r, apr_bucket_brigade *bb)
+{
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "In add_comment");
+	/* construct the url */
+	const char *url =(const char *) ap_construct_url(r->pool, 
+													 (const char *) r->uri, r);
+	
+	/* build the comment by concatenating the url and the comment syntax */
+	const char *my_comment = (const char *) apr_pstrcat(r->pool, "<!-- ", url,
+														" -->", NULL);
+	
+	/** the place where comment is to be inserted */
+	char *place = "</head>";
+	apr_pool_cleanup_register(r->pool, (const void *)place, (void *)free, NULL);
+	//char *place = apr_psprintf(r->pool, "x");
+														
+	/** insert the comment before the </head> */
+	insert_text(r, bb, place, my_comment);
+}
+
+static void modify_header(request_rec *r, apr_bucket_brigade *bb)
+{
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "In modify_header");
+	apr_uri_t *uri = &(r->parsed_uri);
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "apr_uri_t");
+//	const char *host = (const char *) uri->hostname;
+	const char *host = "onhover.localhost";
+	char *event = ap_getword(r->pool, (const char **) &host, '.');
+	
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "%s", event);
+	const char *path = uri->path;
+	const char *part, *type, *nick, *hoverlet, *param1;
+	//char *hover = "var HOVER = { ";
+	int i = 0, j;
+	apr_hash_t *parsed_path = apr_hash_make(r->pool);
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "setting parsed_path");
+	while (*path && (part = ap_getword(r->pool, &path, '/'))){
+		apr_hash_set(parsed_path, &i, sizeof(i), part);
+		i++;
+	
+	}
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "parsed_path set");
+	i = 0;
+	type = apr_hash_get(parsed_path, &i, sizeof(i));
+	i++;
+	nick = apr_hash_get(parsed_path, &i, sizeof(i));
+	i++;
+	hoverlet = apr_hash_get(parsed_path, &i, sizeof(i));
+	i++;
+	param1 = apr_hash_get(parsed_path, &i, sizeof(i));
+	i++;
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "values taken from hash %s %s %s %s", type, nick, hoverlet, param1);
+	const char *hover = (const char *)apr_pstrcat(r->pool, "var HOVER = { event:\'", event, 
+	 "\' kw: window.decodeURIComponent(\'", param1, "\')site:\'\', URL:\'\'", 
+	 ", referrer:\'\', nick:\'", nick, "\',category:\'\', ", 
+	 "theme:\'http://themes.v2.hoverin.s3.amazonaws.com/hi-ap.css\', hid:\'8\', ", 
+	 "params:{}};", NULL);
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "hover made");
+	insert_text(r, bb, "</head>", hover);
+	
+}
+
 
 
 /* per directory configuration initialisation function called by Apache
@@ -176,7 +245,7 @@ static int hoverin_filter_init(ap_filter_t *f)
 static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 {
 	apr_bucket *b;
-	char *current_host = f->r->hostname;
+	const char *current_host = f->r->hostname;
 	
 	
 	hoverin_ctx *ctx = (hoverin_ctx *) f->ctx;
@@ -212,6 +281,7 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 	
 	/* Header and Footer added to the response, now add the comment */
 	add_comment(f->r, bb);
+	//modify_header(f->r, bb);
 	return ap_pass_brigade(f->next, bb);
 }
 
