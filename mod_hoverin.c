@@ -15,7 +15,7 @@ typedef struct {
 	apr_table_t *hosts;
 } hoverin_dir_cfg;
 
-/* filter context data structure f->ctx */
+/* filter context data structure: f->ctx */
 typedef struct {
 	apr_bucket *head;
 	apr_bucket *foot;
@@ -31,11 +31,11 @@ static const char *name = "hoverin-filter";
 #define TXT_HEAD 0x01
 #define TXT_FOOT 0x02
 
-/* a utility function that reads the header and footer files and returns them 
+/*  a utility function that reads the header and footer files and returns them 
 *	in the form of a file bucket
 *	params:
-*		@r a request_rec object that represents the current request_rec
-*		@fname the name of the file that needs to be read
+*		@r: a request_rec object that represents the current request_rec
+*		@fname: the name of the file that needs to be read
 *	returns: apr_butcket * : a file bucket 
 */
 static apr_bucket* hoverin_file_bucket(request_rec *r, const char *fname)
@@ -60,14 +60,15 @@ static apr_bucket* hoverin_file_bucket(request_rec *r, const char *fname)
 								  r->connection->bucket_alloc);
 }
 
-/** insert_text function scans the passed in brigade bb for the closing head tag,
-*	if it finds the closing head tag (</head>) it will attach the current URL in
-*	the form of	a comment before the closing head tag (</head>)
+/** insert_text function inserts the specified text in the bucket brigade at
+*	the specified place (text and place are string parameters).
 *	params:
 *		@r: request_rec object representing current request.
-*		@bb; apr_bucket_brigade object that contains the complete html response
+*		@bb: apr_bucket_brigade object that contains the complete html response
+		@place:	the string before which we need to insert text
+		@text: the string that needs to be inserted.
 */
-static void insert_text(request_rec *r, apr_bucket_brigade *bb, char *place,
+static void insert_text(request_rec *r, apr_bucket_brigade *bb, const char *place,
 						const char *text)
 {
 	
@@ -80,7 +81,7 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, char *place,
 	
 														
 	/* loop through the bucket brigade and read each bucekt to scan for the
-	*	closing head tag </head>
+	*	string place
 	*/
 	for (b = APR_BRIGADE_FIRST(bb) ;
 		 b != APR_BRIGADE_SENTINEL(bb) ;
@@ -91,18 +92,18 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, char *place,
 			return;
 		}
 		
-		/* check if the buffer contains </head>,
-		*  ap_strcasestr will return the pointer to the starting of </head>
-		*  if it finds it else NULL.
+		/* check if the buffer contains place,
+		*  ap_strcasestr will return the pointer to the starting of place
+		*  if it finds it, else NULL.
 		*/
 		tag = ap_strcasestr(buf, place);
 		if (tag != NULL) {
 						
 			/*	calculate the position (offset) where to split the bucket-
-			*	We want to split the bucket at the point where </head> starts in
+			*	We want to split the bucket at the point where place starts in
 			*	the bucket, so we find the difference between the starting
-			*	address of the buffer (buf) and starting address of </head> tag
-			*	(tag),that will be the offset of </head>, within the bucket
+			*	address of the buffer (buf) and starting address of place 
+			*	(tag),that will be the offset of place within the bucket
 			*/
 			offset = ((unsigned int) tag - (unsigned int) buf )/sizeof(char) ;
 			
@@ -114,9 +115,9 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, char *place,
 			apr_bucket_split(b, offset);
 			
 			/*	after the split the first bucket will contain data before
-			* 	</head> and	the next bucket will containg data starting from
-			*	</head> and onwards. So we will move to the NEXT bucket,
-			*	and insert a new bucket (that contains the comment) before it.
+			* 	place and the next bucket will containg data starting from
+			*	place and onwards. So we will move to the NEXT bucket,
+			*	and insert a new bucket (that contains the text) before it.
 			*/ 
 			b = APR_BUCKET_NEXT(b);
 			APR_BUCKET_INSERT_BEFORE(b,
@@ -124,7 +125,7 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, char *place,
 				  					 (const char *)text, strlen(text),
 				  					 r->connection->bucket_alloc ));
 			
-			/* 	Increment the flag, so that we may know that </head> tag was found
+			/* 	Increment the flag, so that we may know that place was found
 			*	and we can break out from the loop 
 			*/
 			flag++;
@@ -135,7 +136,10 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, char *place,
 	}
 }
 
-
+/**
+	Function to add current url as a comment before the closing head tag
+	in the response.
+*/
 static void add_comment(request_rec *r, apr_bucket_brigade *bb)
 {
 	/* construct the url */
@@ -143,32 +147,35 @@ static void add_comment(request_rec *r, apr_bucket_brigade *bb)
 													 (const char *) r->uri, r);
 	
 	/* build the comment by concatenating the url and the comment syntax */
-	const char *my_comment = (const char *) apr_pstrcat(r->connection->pool, "<!-- ", url,
-														" -->", NULL);
+	const char *my_comment = (const char *) apr_pstrcat(r->connection->pool, 
+							"<!-- ", url, " -->", NULL);
 	
 	/** the place where comment is to be inserted */
-	char *place = "</head>";
-	apr_pool_cleanup_register(r->connection->pool, (const void *)place, (void *)free, NULL);
-	//char *place = apr_psprintf(r->pool, "x");
-														
+	const char *place = (const char *) apr_psprintf(r->connection->pool,
+													 "</head>");
+																
 	/** insert the comment before the </head> */
 	insert_text(r, bb, place, my_comment);
 }
 
+/**
+	Function to generate the javascript variable HOVER to be inserted in the
+	HEADER.
+*/
 static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 {
 	apr_uri_t *uri = &(r->parsed_uri);
-	//	const char *host = (const char *) uri->hostname;
-	const char *host = "onhover.localhost";
+	const char *host = (const char *) r->hostname;
 	char *event = ap_getword(r->pool, (const char **) &host, '.');
 	
-	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "%s", event);
 	const char *path = uri->path;
+	path++;
+	
 	const char *part, *type, *nick, *hoverlet, *param1;
-	//char *hover = "var HOVER = { ";
-	int i = 0, j;
+	int i = 0;
 	apr_hash_t *parsed_path = apr_hash_make(r->pool);
 	while (*path && (part = ap_getword(r->pool, &path, '/'))){
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "part= %s", part);
 		apr_hash_set(parsed_path, &i, sizeof(i), part);
 		i++;
 	}
@@ -182,16 +189,19 @@ static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 	i++;
 	param1 = apr_hash_get(parsed_path, &i, sizeof(i));
 	i++;
-	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "values taken from hash %s %s %s %s", type, nick, hoverlet, param1);
-	const char *hover = (const char *)apr_pstrcat(r->connection->pool, "var HOVER = { event:\'", event, 
-	 "\' kw: window.decodeURIComponent(\'", param1, "\')site:\'\', URL:\'\'", 
-	 ", referrer:\'\', nick:\'", nick, "\',category:\'\', ", 
-	 "theme:\'http://themes.v2.hoverin.s3.amazonaws.com/hi-ap.css\', hid:\'8\', ", 
-	 "params:{}};", NULL);
-	insert_text(r, bb, "</head>", hover);
 	
+	const char *hover = (const char *)apr_pstrcat(r->connection->pool, 
+		"var HOVER = { event:\'", event, "\' kw: window.decodeURIComponent(\'", 
+		param1, "\')site:\'\', URL:\'\'", ", referrer:\'\', nick:\'", 
+		nick, "\',category:\'\', ", 
+		"theme:\'http://themes.v2.hoverin.s3.amazonaws.com/hi-ap.css\',",  
+		"hid:\'8\', ", "params:{}};\n", NULL);
+	
+	const char *place = (const char *) apr_psprintf(r->connection->pool, 
+						"(function(){HI.Client.Content");
+	
+	insert_text(r, bb, place, hover);
 }
-
 
 
 /* per directory configuration initialisation function called by Apache
