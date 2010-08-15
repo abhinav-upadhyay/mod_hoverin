@@ -1,3 +1,16 @@
+Monday 16 August 2010	Abhinav Upadhyay	<abhinav@hover.in>
+	1.	The module now automatically generates the JavaScript variable HOVER in
+		the header, populates it with suitable values from the request URL and
+		inserts it at the appropriate place in the header.
+	2.	Still there are fileds left in the HOVER variable like site, referrer, etc.
+		whose values are not provided currently. (The example documentation on 
+		http://start.hover.in doesn't provide any example as to how these fields
+		can be populated.)
+	3.  Fields like Theme and hid contain values but these values may vary from 
+		one request to another and currently I do not understand how to generate 
+		these values.
+
+
 Monday 02 August 2010	Abhinav Upadhyay	<abhinav@hover.in>
 	1. Implemented subdomain support for the module by implmenting an additional directive
 		"mod_hoverin_hosts"
