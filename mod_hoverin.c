@@ -60,6 +60,7 @@ static apr_bucket* hoverin_file_bucket(request_rec *r, const char *fname)
 								  r->connection->bucket_alloc);
 }
 
+
 /** insert_text function inserts the specified text in the bucket brigade at
 *	the specified place (text and place are string parameters).
 *	params:
@@ -172,15 +173,23 @@ static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 	path++;
 	
 	const char *part, *type, *nick, *hoverlet, *param1;
-	int i = 0;
+	const char *params = (const char *) apr_psprintf(r->pool, " ");
+	int i = 0, j = 0, part_count;
 	apr_hash_t *parsed_path = apr_hash_make(r->pool);
-	while (*path && (part = ap_getword(r->pool, &path, '/'))){
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "part= %s", part);
+	while (*path && (part = ap_getword(r->pool, &path, '/'))) {
 		apr_hash_set(parsed_path, &i, sizeof(i), part);
 		i++;
 	}
-	
+	/**
+		save the number of entries in the hash table for future use
+	*/
+	part_count = i;
 	i = 0;
+	/**
+		get the various field values from the hash table into some local 
+		variables, only for code conciseness as we need to concatenate these
+		values with a very large string.
+	*/
 	type = apr_hash_get(parsed_path, &i, sizeof(i));
 	i++;
 	nick = apr_hash_get(parsed_path, &i, sizeof(i));
@@ -190,12 +199,31 @@ static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 	param1 = apr_hash_get(parsed_path, &i, sizeof(i));
 	i++;
 	
+	/**
+		Now the only values left in the hash table are from the param field
+		that are to be extracted and put in JSON format, so loop through the hash.
+	*/
+	while ( i < part_count ) {
+		if (j) {
+			params = (const char *) apr_pstrcat(r->pool, params, ", ", NULL);
+		}
+		params = (const char *) apr_pstrcat(r->pool, params, 
+									apr_psprintf(r->pool, "\'%s\' : \'%s\'",
+									apr_itoa(r->pool, ++j),
+									apr_hash_get(parsed_path, &i, sizeof(i))), 
+									NULL);
+		i++;
+	}
+	
+	/**
+		Now put all the filed values inside the HOVER variable.
+	*/
 	const char *hover = (const char *)apr_pstrcat(r->connection->pool, 
 		"var HOVER = { event:\'", event, "\' kw: window.decodeURIComponent(\'", 
 		param1, "\')site:\'\', URL:\'\'", ", referrer:\'\', nick:\'", 
 		nick, "\',category:\'\', ", 
 		"theme:\'http://themes.v2.hoverin.s3.amazonaws.com/hi-ap.css\',",  
-		"hid:\'8\', ", "params:{}};\n", NULL);
+		"hid:\'8\', ", "params:{", params, "}};\n", NULL);
 	
 	const char *place = (const char *) apr_psprintf(r->connection->pool, 
 						"(function(){HI.Client.Content");
