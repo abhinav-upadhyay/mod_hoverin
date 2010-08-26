@@ -1,3 +1,19 @@
+Tuesday 24 August 2010 	Abhinav Upadhyay	<abhinav@hover.in>
+	1.	Modified module code to parse values from the querystring on the URL 
+		and get the values for the the unknown fields in the HOVER variable.
+		Following is the list of fields in the HOVER variable and their 
+		corresponding request parameters that need to be passed with the URL:
+			HOVER FIELDS				REQUEST PARAMETER NAME
+			hid							hid
+			site						site
+			url							url
+			referrer					ref
+			category					cat
+			theme						theme
+		
+		The order of these parameters on the URL does not matter.
+
+
 Monday 16 August 2010	Abhinav Upadhyay	<abhinav@hover.in>
 	1.	The module now automatically generates the JavaScript variable HOVER in
 		the header, populates it with suitable values from the request URL and

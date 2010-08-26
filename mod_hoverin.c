@@ -5,6 +5,7 @@
 #include <http_config.h>
 #include <apr_strmatch.h>
 #include <apr_hash.h>
+
 /* All function names starting with hoverin : like a namespace */
 module AP_MODULE_DECLARE_DATA hoverin_module  ;
 
@@ -23,10 +24,13 @@ typedef struct {
 	unsigned int state;
 } hoverin_ctx;
 
+/** A hash table for storing get parameters of the request */
+//static apr_table_t *params_table;
 
 
 /* Name of the filter-module */
 static const char *name = "hoverin-filter";
+
 
 #define TXT_HEAD 0x01
 #define TXT_FOOT 0x02
@@ -61,13 +65,118 @@ static apr_bucket* hoverin_file_bucket(request_rec *r, const char *fname)
 }
 
 
+
+
+/**
+	A simplified implementation of a get parameter parser.
+	It simply takes the querystring from the request object and stores the
+	parameters in a hash table in key value format. No support for multiple
+	valued parameters as is the case in our module.
+*/
+static void parse_get_params(request_rec *r, char *querystring)
+{
+	const char *delim = "&";
+	char *pair;
+	char *last;
+	char *ch;
+	char *value;
+	
+	//apr_table_t	*params_table = apr_table_make(r->connection->pool, 6);
+	apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
+	
+	if (querystring == NULL) {
+		return;
+	}
+	
+	for (pair = (char *) apr_strtok(querystring, delim, &last); 
+		 pair != NULL; 
+		 pair = (char *) apr_strtok(NULL, delim, &last)) {
+		/**
+		*	replace + in the current key-value pair with blank spaces 
+		*/
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "pair = %s", pair);
+		for (ch = pair; *ch; ++ch) {
+			if (*ch == '+') {
+				*ch = ' ';
+			}
+		}
+		
+		/**
+		*	Now separate the key and value and store them in the table 
+		*/
+		ch = NULL;
+		ch = ap_strchr_c(pair, '=');
+		if (ch != NULL) {
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "ch = %s", ch);
+			*ch++ = '\0';
+			//ap_unescape_url(pair);
+			//ap_unescape_url(ch);
+		}
+		else {
+			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "ch is null");
+			ch = "";
+			//ap_unescape_url(pair);
+		}		
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "key=%s, val=%s", pair, ch);
+		apr_table_set(params_table, pair, ch);
+	}
+	//return params_table;
+}
+
+static int parse_query(request_rec *r)
+{
+	
+	
+	apr_table_t	*params_table = apr_table_make(r->pool, 6);
+	ap_set_module_config(r->request_config, &hoverin_module, params_table);
+	parse_get_params(r, r->parsed_uri.query);
+	
+}
+
+/**
+*	Function to extract the value of a given request parameter from
+*	params_table.
+*	params:
+*		@r: the request object
+*		@param: the parameter whose value is to be found
+*	Returns:
+*		value of the parameter if found an entry for the param is found in the
+*		table.
+*		NULL if there is no entry of the given parameter in the table.
+*/
+
+static const char *get_parameter(request_rec *r, const char *param)
+{
+	if (r == NULL || param == NULL) {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "r or param is null");
+		return;
+	}
+	//apr_table_t *params_table = NULL;
+	apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
+	if (params_table == NULL) {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "table is null");
+		//params_table = parse_get_params(r, r->parsed_uri.query);
+	}
+	
+	
+	const char *val = apr_table_get(params_table, param);
+	/**
+	*	If the value of the parameter is NULL then return ''
+	*/
+	if (val == NULL) {
+		return "";
+	}
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "value = %s", val);
+	return val;
+}
+
 /** insert_text function inserts the specified text in the bucket brigade at
 *	the specified place (text and place are string parameters).
 *	params:
 *		@r: request_rec object representing current request.
 *		@bb: apr_bucket_brigade object that contains the complete html response
-		@place:	the string before which we need to insert text
-		@text: the string that needs to be inserted.
+*		@place:	the string before which we need to insert text
+*		@text: the string that needs to be inserted.
 */
 static void insert_text(request_rec *r, apr_bucket_brigade *bb, const char *place,
 						const char *text)
@@ -172,7 +281,9 @@ static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 	const char *path = uri->path;
 	path++;
 	
+	const char *url, *referrer, *site, *theme, *hid, *category;
 	const char *part, *type, *nick, *hoverlet, *param1;
+	
 	const char *params = (const char *) apr_psprintf(r->pool, " ");
 	int i = 0, j = 0, part_count;
 	apr_hash_t *parsed_path = apr_hash_make(r->pool);
@@ -216,14 +327,25 @@ static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 	}
 	
 	/**
+	*	Extract the rest of the field values from request parameters
+	*/
+	url = get_parameter(r, "url");
+	site = get_parameter(r, "site");
+	referrer = get_parameter(r, "ref");
+	theme = get_parameter(r, "theme");
+	hid = get_parameter(r, "hid");
+	category = get_parameter(r, "cat");
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "theme = %s", theme);
+	
+	/**
 		Now put all the filed values inside the HOVER variable.
 	*/
 	const char *hover = (const char *)apr_pstrcat(r->connection->pool, 
 		"var HOVER = { event:\'", event, "\' kw: window.decodeURIComponent(\'", 
-		param1, "\')site:\'\', URL:\'\'", ", referrer:\'\', nick:\'", 
-		nick, "\',category:\'\', ", 
-		"theme:\'http://themes.v2.hoverin.s3.amazonaws.com/hi-ap.css\',",  
-		"hid:\'8\', ", "params:{", params, "}};\n", NULL);
+		param1, "\')site:\'", site, "\', URL:\'", url, "\', referrer:\'", 
+		referrer, "\', nick:\'", nick, "\',category:\'", category, "\', ", 
+		"theme:\'", theme, "\', ",  
+		"hid:\'", hid, "\', params:{", params, "}};\n", NULL);
 	
 	const char *place = (const char *) apr_psprintf(r->connection->pool, 
 						"(function(){HI.Client.Content");
@@ -272,7 +394,8 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 {
 	apr_bucket *b;
 	const char *current_host = f->r->hostname;
-	
+	//static int count = 1;
+	//ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "count = %d", count++);
 	
 	hoverin_ctx *ctx = (hoverin_ctx *) f->ctx;
 	if (ctx == NULL) {
@@ -340,6 +463,7 @@ static const command_rec hoverin_cmds[] = {
 /* setting the hooks */
 static void hoverin_hooks(apr_pool_t *pool)
 {
+	ap_hook_post_read_request(parse_query, NULL, NULL, APR_HOOK_FIRST);
 	ap_register_output_filter(name, hoverin_filter, hoverin_filter_init, AP_FTYPE_RESOURCE);
 }
 

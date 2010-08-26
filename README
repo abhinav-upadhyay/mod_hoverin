@@ -25,6 +25,7 @@ Table Of Contents::
 		For other distros you may check your vendor's manual or online documentation.
 	
 2. Installing mod_hoverin:
+	
 	2.1 Extract the source code into a directory of your choice-
 		$tar -zxvf mod_hoverin-1.1.tar.gz
 		
@@ -44,7 +45,8 @@ Table Of Contents::
 				2. After completing the installation, the setup will automatically download the header and footer files (necessary for this module to 					work) from hover.in's server and store them in the mod_hoverin's source directory by the names "header.html" and "footer.html" .
 				Please store those files in a directory of your choice. You will need to specify their locations while configuring mod_hoverin (See 				section 3.1).
 					
-		If the above commands run successfully without any errors, then the module should be installed and activated. In case you encountered any 			problem, please see the Troubleshooting section.
+		If the above commands run successfully without any errors, then the module should be installed and activated. In case you encountered any problem,
+		please see the Troubleshooting section.
 
 		Great, the only thing left is setting up the configuration directives. See that in the next section.
 
@@ -53,16 +55,22 @@ Table Of Contents::
 	3.1 Directives required by mod_hoverin-
 		Following directives need to provided in the configuration file of the server (usually httpd.conf, but you may check the OS manual )
 		
-		mod_hoverin_hosts onhover.mywebsite.com onclick.mywebsite.com onfocus.mywebsite.com 
+		mod_hoverin_hosts onhover.mywebsite.com onclick.mywebsite.com 
 		AddOutputFilterByType hoverin-filter text/html text/plain
 		mod_hoverin_header "/usr/local/apache2/htdocs/hoverin/header.html"
 		mod_hoverin_footer "/usr/local/apache2/htdocs/hoverin/footer.html"
 		
-		*	mod_hoverin_hosts is a REQUIRED directive for mod_hoverin. You should provide to it the name of the virtual hosts explicitly on which
-			the module should be activated. You may mention any subdomain or main domain to it. 
-		
-		*	AddOutputFilterByType directive takes the name of the module as its first argument (hoverin-filter) and the type of requests it is 				suppossed to filter (text/html and text/plain).
-		*	mod_hoverin_header and mod_hoverin_footer are the configuration directives implemented by mod_hoverin. They should point to the the header 				and footer documents on	the server file system .
+		*	mod_hoverin_hosts is a REQUIRED directive for mod_hoverin. You should explicitly provide with it the name of the virtual hosts on which
+			the module should be activated. You may mention any subdomain or domain to it. The above sample configuration lists two subdomains: 
+			onhover.mywebsite.com and onclick.mywebsite.com. 
+		  
+		*	AddOutputFilterByType directive takes the name of the module as its first argument (hoverin-filter) and the type of requests it is suppossed
+			to filter (text/html and text/plain). You can simply copy paste this line as it is in your configuration.
+		*	mod_hoverin_header and mod_hoverin_footer are the configuration directives implemented by mod_hoverin. They should point to the the header 				and footer documents on	the server file system. 
+			
+			NOTE:	While installing mod_hoverin, it would have downloaded two files header.html and footer.html from hover.in's server in the source
+					directory. Move these files to a directory of your choice on the server and specifiy that location to the mod_hoverin_header and
+					mod_hoverin_footer directives, just like we didi in the sample configuration above.
 			
 	3.2 You can also configure mod_hoverin to work only for a particular host or domain by enclosing the above mentioned directives in
 		the VirtualHost directive. 
