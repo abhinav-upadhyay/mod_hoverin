@@ -31,6 +31,8 @@ typedef struct {
 /* Name of the filter-module */
 static const char *name = "hoverin-filter";
 
+//static int count = 0;
+
 
 #define TXT_HEAD 0x01
 #define TXT_FOOT 0x02
@@ -73,24 +75,25 @@ static apr_bucket* hoverin_file_bucket(request_rec *r, const char *fname)
 	parameters in a hash table in key value format. No support for multiple
 	valued parameters as is the case in our module.
 */
-static void parse_get_params(request_rec *r, char *querystring)
+static void parse_get_params(request_rec *r, const char *querystring)
 {
 	const char *delim = "&";
 	char *pair;
 	char *last;
 	char *ch;
 	char *value;
-	
-	//apr_table_t	*params_table = apr_table_make(r->connection->pool, 6);
+	const char *token;
+	//params_table = apr_table_make(r->pool, 6);
 	apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
 	
 	if (querystring == NULL) {
 		return;
 	}
 	
-	for (pair = (char *) apr_strtok(querystring, delim, &last); 
+	/*for (pair = (char *) apr_strtok(querystring, delim, &last);
 		 pair != NULL; 
-		 pair = (char *) apr_strtok(NULL, delim, &last)) {
+		 pair = (char *) apr_strtok(NULL, delim, &last)) {*/
+	while (*querystring && (pair = ap_getword(r->pool, (const char **) &querystring, '&'))) {
 		/**
 		*	replace + in the current key-value pair with blank spaces 
 		*/
@@ -109,13 +112,13 @@ static void parse_get_params(request_rec *r, char *querystring)
 		if (ch != NULL) {
 			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "ch = %s", ch);
 			*ch++ = '\0';
-			//ap_unescape_url(pair);
-			//ap_unescape_url(ch);
+			ap_unescape_url(pair);
+			ap_unescape_url(ch);
 		}
 		else {
 			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "ch is null");
 			ch = "";
-			//ap_unescape_url(pair);
+			ap_unescape_url(pair);
 		}		
 		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "key=%s, val=%s", pair, ch);
 		apr_table_set(params_table, pair, ch);
@@ -123,7 +126,7 @@ static void parse_get_params(request_rec *r, char *querystring)
 	//return params_table;
 }
 
-static int parse_query(request_rec *r)
+static void parse_query(request_rec *r)
 {
 	
 	
@@ -153,6 +156,8 @@ static const char *get_parameter(request_rec *r, const char *param)
 	}
 	//apr_table_t *params_table = NULL;
 	apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
+	//apr_table_t *params_table = apr_table_make(r->pool, 6);
+	//parse_get_params(r, r->parsed_uri.query);
 	if (params_table == NULL) {
 		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "table is null");
 		//params_table = parse_get_params(r, r->parsed_uri.query);
@@ -196,6 +201,9 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, const char *plac
 	for (b = APR_BRIGADE_FIRST(bb) ;
 		 b != APR_BRIGADE_SENTINEL(bb) ;
 		 b = APR_BUCKET_NEXT(b) ) {
+		 if (APR_BUCKET_IS_EOS(b) || APR_BUCKET_IS_FLUSH(b))
+		 	continue;
+		 else {
 		apr_bucket_read(b, &buf, &sz, APR_BLOCK_READ);
 		if (buf == NULL) {
 			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "mod_hoverin: buf = NULL");
@@ -231,14 +239,16 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, const char *plac
 			*/ 
 			b = APR_BUCKET_NEXT(b);
 			APR_BUCKET_INSERT_BEFORE(b,
-				  					 apr_bucket_transient_create(
+				  					 apr_bucket_heap_create(
 				  					 (const char *)text, strlen(text),
+				  					 NULL,
 				  					 r->connection->bucket_alloc ));
 			
 			/* 	Increment the flag, so that we may know that place was found
 			*	and we can break out from the loop 
 			*/
 			flag++;
+		}
 		}
 		if (flag) {
 			return;
@@ -329,25 +339,30 @@ static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 	/**
 	*	Extract the rest of the field values from request parameters
 	*/
+
 	url = get_parameter(r, "url");
 	site = get_parameter(r, "site");
 	referrer = get_parameter(r, "ref");
 	theme = get_parameter(r, "theme");
 	hid = get_parameter(r, "hid");
 	category = get_parameter(r, "cat");
+
+
 	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "theme = %s", theme);
 	
 	/**
 		Now put all the filed values inside the HOVER variable.
 	*/
-	const char *hover = (const char *)apr_pstrcat(r->connection->pool, 
+	const char *hover = (const char *)apr_pstrcat(r->pool,
 		"var HOVER = { event:\'", event, "\' kw: window.decodeURIComponent(\'", 
 		param1, "\')site:\'", site, "\', URL:\'", url, "\', referrer:\'", 
 		referrer, "\', nick:\'", nick, "\',category:\'", category, "\', ", 
 		"theme:\'", theme, "\', ",  
 		"hid:\'", hid, "\', params:{", params, "}};\n", NULL);
+
+
 	
-	const char *place = (const char *) apr_psprintf(r->connection->pool, 
+	const char *place = (const char *) apr_psprintf(r->pool,
 						"(function(){HI.Client.Content");
 	
 	insert_text(r, bb, place, hover);
@@ -394,7 +409,7 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 {
 	apr_bucket *b;
 	const char *current_host = f->r->hostname;
-	//static int count = 1;
+	int count = 0;
 	//ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "count = %d", count++);
 	
 	hoverin_ctx *ctx = (hoverin_ctx *) f->ctx;
@@ -429,9 +444,14 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 	}
 	
 	/* Header and Footer added to the response, now add the comment */
-	add_comment(f->r, bb);
-	modify_header(f->r, bb);
+	//if (count == 0) {
+		parse_query(f->r);
+		add_comment(f->r, bb);
+		modify_header(f->r, bb);
+	//}
+	count++;
 	return ap_pass_brigade(f->next, bb);
+	//return OK;
 }
 
 static const char *set_allowed_hosts(cmd_parms *parms, void *dummy, 
@@ -463,7 +483,7 @@ static const command_rec hoverin_cmds[] = {
 /* setting the hooks */
 static void hoverin_hooks(apr_pool_t *pool)
 {
-	ap_hook_post_read_request(parse_query, NULL, NULL, APR_HOOK_FIRST);
+	//ap_hook_post_read_request(parse_query, NULL, NULL, APR_HOOK_FIRST);
 	ap_register_output_filter(name, hoverin_filter, hoverin_filter_init, AP_FTYPE_RESOURCE);
 }
 

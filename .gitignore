@@ -13,3 +13,5 @@ ltmain.sh
 Makefile.in
 missing
 Makefile
+.cproject
+.project
