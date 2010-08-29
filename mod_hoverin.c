@@ -107,7 +107,7 @@ static void parse_get_params(request_rec *r, const char *querystring)
 		/**
 		*	replace + in the current key-value pair with blank spaces 
 		*/
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "pair = %s", pair);
+		
 		for (ch = pair; *ch; ++ch) {
 			if (*ch == '+') {
 				*ch = ' ';
@@ -120,17 +120,14 @@ static void parse_get_params(request_rec *r, const char *querystring)
 		ch = NULL;
 		ch = ap_strchr_c(pair, '=');
 		if (ch != NULL) {
-			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "ch = %s", ch);
 			*ch++ = '\0';
 			ap_unescape_url(pair);
 			ap_unescape_url(ch);
 		}
 		else {
-			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "ch is null");
 			ch = "";
 			ap_unescape_url(pair);
 		}		
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "key=%s, val=%s", pair, ch);
 		apr_table_set(params_table, pair, ch);
 	}
 
@@ -162,7 +159,6 @@ static void parse_query(request_rec *r)
 static const char *get_parameter(request_rec *r, const char *param)
 {
 	if (r == NULL || param == NULL) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "r or param is null");
 		return;
 	}
 
@@ -181,7 +177,6 @@ static const char *get_parameter(request_rec *r, const char *param)
 	if (val == NULL) {
 		return "";
 	}
-	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "value = %s", val);
 	return val;
 }
 
@@ -216,8 +211,6 @@ static void insert_text(request_rec *r, apr_bucket_brigade *bb, const char *plac
 		 else {
 			apr_bucket_read(b, &buf, &sz, APR_BLOCK_READ);
 			if (buf == NULL) {
-				ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
-						"mod_hoverin: buf = NULL");
 				return;
 			}
 			
@@ -445,10 +438,7 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 	
 	/* Check if the module should work for this host or not */
 	if (apr_table_get(ctx->hosts, current_host) == NULL) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "mod_hoverin: "
-						"Invalid host: %s", current_host);
 		return ap_pass_brigade(f->next, bb);
-		
 	}
 
 	/* Now when we are going to process this request, we should unset the
@@ -463,24 +453,19 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 	/*	Insert the footer at the end of the brigade. */
 	if ( ctx->foot && ! ( ctx->state & TXT_FOOT ) ) {
 			b = APR_BRIGADE_LAST(bb) ;
-			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "mod_hoverin: " 
-						  "setting footer");
 			APR_BUCKET_INSERT_BEFORE(b, ctx->foot);
 			ctx->state |= TXT_FOOT;
 			}
 	
 	/* Insert the header at the head of the brigade */
 	if ( ctx->head && ! ( ctx->state & TXT_HEAD ) ) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "mod_hoverin: "
-					  "setting header");
 		APR_BRIGADE_INSERT_HEAD(bb, ctx->head);
 		ctx->state |= TXT_HEAD;
 	}
 	
 	/* Header and Footer added to the response, now add the comment */
-	r_cfg *my_r_cfg = ap_get_module_config(f->r->request_config, &hoverin_module);
-	apr_table_t *params_table = my_r_cfg->params_table;
-	ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "parsing query");
+	//r_cfg *my_r_cfg = ap_get_module_config(f->r->request_config, &hoverin_module);
+	//apr_table_t *params_table = my_r_cfg->params_table;
 	add_comment(f->r, bb);
 	parse_get_params(f->r, f->r->parsed_uri.query);
 	modify_header(f->r, bb);
