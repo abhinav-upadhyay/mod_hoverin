@@ -1,4 +1,4 @@
-Tuesday 24 August 2010 	Abhinav Upadhyay	<abhinav@hover.in>
+Tuesday 29 August 2010 	Abhinav Upadhyay	<abhinav@hover.in>
 	1.	Modified module code to parse values from the querystring on the URL 
 		and get the values for the the unknown fields in the HOVER variable.
 		Following is the list of fields in the HOVER variable and their 
@@ -11,8 +11,22 @@ Tuesday 24 August 2010 	Abhinav Upadhyay	<abhinav@hover.in>
 			category					cat
 			theme						theme
 		
-		The order of these parameters on the URL does not matter.
-
+	NOTE:	1. The order of these parameters on the URL does not matter.
+			2. In case any or none of the parameters are supplied with the URL
+				the corresponding fields will automatically get '' as their
+				value.
+			3. The module will be working on any requests for the hosts for which
+				it is configured, even if the requested URL is not of the expected 
+				format (http://<event>.hostname/<hoverlet>/<nick>/<type>/param1/).
+				However we can write extra code to disable this feature if required.
+	
+	2.	Removed some minor bugs that were causing memory leaks and seg faults.
+	
+	3.	Module was getting invoked twice for each request due to some improper
+		memory management, removed the bug.
+			
+	4. The module was changing the length of the content considerably, so made the module
+		to reconfigure the Content-Length response header at the end of processing.
 
 Monday 16 August 2010	Abhinav Upadhyay	<abhinav@hover.in>
 	1.	The module now automatically generates the JavaScript variable HOVER in

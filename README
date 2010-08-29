@@ -10,15 +10,20 @@ Table Of Contents::
 	
 	
 1. Prerequisites:
-	1.1 In order to be able to install this module the user will need the apache development headers installed. Check your operating system's manual for installing the apache development headers.
+	1.1 In order to be able to install this module the user will need the 
+		Apache development headers installed. Check your operating system's 
+		manual for installing the apache development headers.
 	
 		1.1.1 On Ubuntu it can be installed by
 		$sudo apt-get install apache2-prefork-dev 
-		(assuming that the apache installed is also based on the prefork MPM,for threaded MPM, replace apache2-prefork-dev by apache2-threaded-dev )
+		(assuming that the apache installed is also based on the prefork MPM, 
+		for threaded MPM, replace apache2-prefork-dev by apache2-threaded-dev )
 		
 		1.1.2	On Redhat systems it is usually called httpd-dev package (Please check the manual).
 		
-	1.2 You will also need GNU make (or any other equivalent make tool) installed on your system. On ubuntu you can install it by following command
+	1.2 You will also need GNU make (or any other equivalent make tool) 
+		installed on your system. On ubuntu you can install it by following 
+		command
 		
 		$sudo apt-get install build-essential 
 		
@@ -27,10 +32,10 @@ Table Of Contents::
 2. Installing mod_hoverin:
 	
 	2.1 Extract the source code into a directory of your choice-
-		$tar -zxvf mod_hoverin-1.1.tar.gz
+		$tar -zxvf mod_hoverin-1.2.tar.gz
 		
 	2.2 After extracting the source, cd to that directory
-		$cd mod_hoverin-1.1/
+		$cd mod_hoverin-1.2/
 	
 	2.3 Now run the following commands
 		
@@ -40,65 +45,86 @@ Table Of Contents::
 		
 		$sudo make install
 		
-		NOTE:	1. The --with-site option to configure is necessary, you need to tell your website's fully qualified domain name on which you want to 					run	this module. If you don't supply that parameter, the installation won't procede.
+		NOTE:	1. The --with-site option to configure is necessary, 
+				you need to tell your website's fully qualified domain name 
+				on which you want to run this module. If you don't supply that 
+				parameter, the installation won't proceed.
 		
-				2. After completing the installation, the setup will automatically download the header and footer files (necessary for this module to 					work) from hover.in's server and store them in the mod_hoverin's source directory by the names "header.html" and "footer.html" .
-				Please store those files in a directory of your choice. You will need to specify their locations while configuring mod_hoverin (See 				section 3.1).
+				2. After completing the installation, the setup will 
+				automatically download the header and footer files 
+				(necessary for this module to work) from hover.in's server and 
+				store them in the mod_hoverin's source directory by the names 
+				"header.html" and "footer.html" .
+				Please store those files in a directory of your choice. You 
+				will need to specify their locations while configuring 
+				mod_hoverin (See section 3.1).
 					
-		If the above commands run successfully without any errors, then the module should be installed and activated. In case you encountered any problem,
-		please see the Troubleshooting section.
+		If the above commands run successfully without any errors, then the 
+		module should be installed and activated. In case you encountered any 
+		problem, please see the Troubleshooting section.
 
 		Great, the only thing left is setting up the configuration directives. See that in the next section.
 
 3. Configuring mod_hoverin:
 	
 	3.1 Directives required by mod_hoverin-
-		Following directives need to provided in the configuration file of the server (usually httpd.conf, but you may check the OS manual )
+		Following directives need to provided in the configuration file of the 
+		server (usually httpd.conf, but you may check the OS manual )
 		
 		mod_hoverin_hosts onhover.mywebsite.com onclick.mywebsite.com 
 		AddOutputFilterByType hoverin-filter text/html text/plain
 		mod_hoverin_header "/usr/local/apache2/htdocs/hoverin/header.html"
 		mod_hoverin_footer "/usr/local/apache2/htdocs/hoverin/footer.html"
 		
-		*	mod_hoverin_hosts is a REQUIRED directive for mod_hoverin. You should explicitly provide with it the name of the virtual hosts on which
-			the module should be activated. You may mention any subdomain or domain to it. The above sample configuration lists two subdomains: 
-			onhover.mywebsite.com and onclick.mywebsite.com. 
+		*	mod_hoverin_hosts is a REQUIRED directive for mod_hoverin. You 
+			should explicitly provide with it the name of the virtual hosts on 
+			which the module should be activated. You may mention any subdomain 
+			or domain to it. The above sample configuration lists two 
+			subdomains: onhover.mywebsite.com and onclick.mywebsite.com. 
 		  
-		*	AddOutputFilterByType directive takes the name of the module as its first argument (hoverin-filter) and the type of requests it is suppossed
-			to filter (text/html and text/plain). You can simply copy paste this line as it is in your configuration.
-		*	mod_hoverin_header and mod_hoverin_footer are the configuration directives implemented by mod_hoverin. They should point to the the header 				and footer documents on	the server file system. 
+		*	AddOutputFilterByType directive takes the name of the module as its 
+			first argument (hoverin-filter) and the type of requests it is 
+			suppossed to filter (text/html and text/plain). You can simply copy 
+			paste this line as it is in your configuration.
+		*	mod_hoverin_header and mod_hoverin_footer are the configuration 
+			directives implemented by mod_hoverin. They should point to the the 
+			header and footer documents on	the server file system. 
 			
-			NOTE:	While installing mod_hoverin, it would have downloaded two files header.html and footer.html from hover.in's server in the source
-					directory. Move these files to a directory of your choice on the server and specifiy that location to the mod_hoverin_header and
-					mod_hoverin_footer directives, just like we didi in the sample configuration above.
+			NOTE:	While installing mod_hoverin, it would have downloaded two 
+					files header.html and footer.html from hover.in's server in 
+					the source directory. Move these files to a directory of 
+					your choice on the server and specifiy that location to the 
+					mod_hoverin_header and mod_hoverin_footer directives, just 
+					like we didi in the sample configuration above.
 			
-	3.2 You can also configure mod_hoverin to work only for a particular host or domain by enclosing the above mentioned directives in
+	3.2 You can also configure mod_hoverin to work only for a particular host 
+		or domain by enclosing the above mentioned directives in
 		the VirtualHost directive. 
 		
 		Example Configuration 1. -> Following is the configuration for the module to work only for requests for localhost.
 		
+		mod_hoverin_hosts localhost
 		<VirtualHost 127.0.0.1>
 		#the root directory wrt which documents are served (much like /var/www/).
 		DocumentRoot /usr/local/apache2/htdocs/mywebsite/		
 		#host name.
 		ServerName localhost								
 		#mod_hoverin's directives
-		mod_hoverin_hosts localhost
 		AddOutputFilterByType hoverin-filter text/html text/plain
-		Header "/usr/local/apache2/htdocs/hoverin/header.html"
-		Footer "/usr/local/apache2/htdocs/hoverin/footer.html"
+		mod_hoverin_header "/usr/local/apache2/htdocs/hoverin/header.html"
+		mod_hoverin_footer "/usr/local/apache2/htdocs/hoverin/footer.html"
 		</VirtualHost>
 		
 		Example Configuration 2. -> Most probably you would like the module to work only for subdomains like onhover.mywebsite or onclick.mywebsite.
 		Here is the configuration
 		
+		mod_hoverin_hosts onhover.mywebsite.com onclick.mywebsite.com onfocus.mywebsite.com
 		<VirtualHost 56.64.112.10>
 		#the root directory wrt which documents are served (much like /var/www/).
 		DocumentRoot /usr/local/apache2/htdocs/mywebsite/		
 		#host name.
 		ServerName *.mywebsite.com
 		#mod_hoverin's directives
-		mod_hoverin_hosts onhover.mywebsite.com onclick.mywebsite.com onfocus.mywebsite.com 
 		AddOutputFilterByType hoverin-filter text/html text/plain
 		Header "/usr/local/apache2/htdocs/hoverin/header.html"
 		Footer "/usr/local/apache2/htdocs/hoverin/footer.html"
@@ -106,57 +132,99 @@ Table Of Contents::
 		
 		NOTES:
 		*	Replace 56.64.112.10 with your server's IP address. 
-		*	You should have a DNS record that points your subdomain to your server's IP address. 
-		*	You should notice that even though you can configure any number of subdomains using the wildcard *.mywebsite.com ,
-			you have to EXPLICITLY define the subdomains on which mod_hoverin should work through the mod_hoverin_hosts directive.
+		*	You should have a DNS record that points your subdomain to your 
+			server's IP address. 
+		*	You should notice that even though you can configure any number of 
+			subdomains using the wildcard *.mywebsite.com ,
+			you have to EXPLICITLY define the subdomains on which mod_hoverin 
+			should work through the mod_hoverin_hosts directive.
+		*	It is better if we put the mod_hoverin_hosts directive outside any 
+			VirtualHost directive, that way we need to specify it only once. 
+			It is also possible to put inside the VirtualHost directive, but in 
+			that case we need to provide this directive inside each VirtualHost 
+			for which the module has to work.
 		
-		
-	3.3 Similarly you can also configure the module to work only for requests for a particualr URL by using the Location directive.
+	3.3 Similarly you can also configure the module to work only for requests 
+		for a particular URL by using the Location directive.
 	
-	3.4 You can configure the module as per your requirements using the VirtualHost, Location, Directory and other container directives, it should work 		without any problems. But the directives specified in 3.1 are absolutely necessary for the module to work.
+	3.4 You can configure the module as per your requirements using the 
+		VirtualHost, Location, Directory and other container directives, it 
+		should work without any problems. But the directives specified in 3.1 
+		are absolutely necessary for the module to work.
 	
 
 4. Troubleshooting: 
 
-	In case you encountered some error during installing the module then please see below, I will disucss a few common causes of errors and problems. 
+	In case you encountered some error during installing the module then please 
+	see below, I will discuss a few common causes of errors and problems. 
 	If this doesn't solve your problem then please mail me at abhinav@hover.in
 	
 	4.1 configure: error: APXS not found in $PATH, please use --with-apxs to specify the location of the apxs binary
 		
 		In case you encountered the above error on executing ./configure then it may mean the following:
-		4.1.1 You don't have the Apache development headers installed (these are the prerequisites). Please check you Operating system's manual
-				for installing the apache development headers and try again, it should work then.
-		4.1.2 If you installed Apache from source then you need to specify the location of the "apxs" tool to configure using the --with-apxs option, 					for example:
+		4.1.1 You don't have the Apache development headers installed (these 
+				are the prerequisites). Please check you Operating system's manual
+				for installing the apache development headers and try again, it 
+				should work then.
+		4.1.2 If you installed Apache from source then you need to specify the 
+				location of the "apxs" tool to configure using the --with-apxs 
+				option, for example:
 				./configure --with-apxs=/usr/local/apache2/bin/apxs 
-		4.1.3 It may also be possible that you installed the apache development headers but apxs is not on the system path, in that case you should
-				specify location of apxs to configure using the --with-apxs option (just like in 4.1.2).
+		4.1.3 It may also be possible that you installed the apache development 
+				headers but apxs is not on the system path, in that case you 
+				should specify location of apxs to configure using the 
+				--with-apxs option (just like in 4.1.2).
 	
 	
-	4.2 You need root privileges for installing the module, if you don't have root password, then you may not be able to install the module.
+	4.2 You need root privileges for installing the module, if you don't have 
+		root password, then you may not be able to install the module.
 		You may get following error if you try to install without root access:
 			apxs:Error: Command failed with rc=65536
 	
 	
 	4.3 You may also get the error "No command 'make' found" :
 	
-		4.3.1 It means that you don't have GNU make installed on your system. Please install make and try again.
+		4.3.1 It means that you don't have GNU make installed on your system. 
+			Please install GNU make and try again.
 		
-	4.4 If the module installs properly and is activated, but you still don't see it in effect, then you may not have set the configuration
-		directives required by the module as described in the configuration section (3.1).
+	4.4 If the module installs properly and is activated, but you still don't 
+		see it in effect, then you may not have set the configuration	
+		directives required by the module as described in the configuration 
+		section (3.1).
 
-	4.5 If you are not able to find the configuration file for your apache, then please go to the following URL and see the directory layout of apache 			for your particular OS:
+	4.5 If you are not able to find the configuration file for your apache, 
+		then please go to the following URL and see the directory layout of 
+		apache for your particular OS:
 			http://wiki.apache.org/httpd/DistrosDefaultLayout
-		Most of the distros usually mess with directory structure of Apache and scatter it among different directories in the filesystem. Its best to 			check your distro's setting either in your vendor's documentation or at the above given link.
+		Most of the distros usually mess with the directory structure of Apache 
+		and scatter it among different directories in the filesystem. Its best 
+		to check your distro's setting either in your vendor's documentation or 
+		at the above given link.
 		
 		In case you installed apache from source, then the default configuration file is:
 			/usr/local/apache2/conf/httpd.conf
-	
+	4.6 If the module installed properly and you set the configuration  
+		directives properly then see apache's error log for any error logs 
+		from the module. Following are the possible error logs and their 
+		solutions:
+		
+		1.	mod_hoverin: stat error
+		2.	mod_hoverin: cant open the file
+				The above errors indicate that either you have not configured
+				the location of header.html and footer.html correctly OR
+				Apache does not read permission to that directory where 
+				these files are stored.
+		
+		3.	mod_hoverin: invalid file
+				This error simply tells that you have specefied a wrong 
+				location for header.html or footer.html in the mod_hoverin_header 
+				and mod_hoverin_footer directive.				
 
 5. Known Issues with mod_hoverin:
 	
 	Following issues exist with the current version of mod_hoverin-
 	
-	5.1 Currently you need to explictly list down all the virtual hosts for which the module should be activated. In future we will try to make this
-		easy by supporting wild cards.
+	5.1 Currently you need to explictly list down all the virtual hosts for which the module should be activated. 
+		In future we will try to make this easy by supporting wild cards.
 				
 
