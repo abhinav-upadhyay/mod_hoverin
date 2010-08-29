@@ -6,6 +6,7 @@
 #include <apr_strmatch.h>
 #include <apr_hash.h>
 
+
 /* All function names starting with hoverin : like a namespace */
 module AP_MODULE_DECLARE_DATA hoverin_module  ;
 
@@ -24,6 +25,9 @@ typedef struct {
 	unsigned int state;
 } hoverin_ctx;
 
+typedef struct {
+	apr_table_t *params_table
+} r_cfg;
 /** A hash table for storing get parameters of the request */
 //static apr_table_t *params_table;
 
@@ -84,7 +88,10 @@ static void parse_get_params(request_rec *r, const char *querystring)
 	char *value;
 	const char *token;
 	//params_table = apr_table_make(r->pool, 6);
-	apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
+	//apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
+	r_cfg *my_r_cfg = ap_get_module_config(r->request_config, &hoverin_module);
+	my_r_cfg->params_table = apr_table_make(r->pool, 6);
+	apr_table_t *params_table = my_r_cfg->params_table;
 	
 	if (querystring == NULL) {
 		return;
@@ -129,10 +136,12 @@ static void parse_get_params(request_rec *r, const char *querystring)
 static void parse_query(request_rec *r)
 {
 	
-	
-	apr_table_t	*params_table = apr_table_make(r->pool, 6);
-	ap_set_module_config(r->request_config, &hoverin_module, params_table);
-	parse_get_params(r, r->parsed_uri.query);
+	r_cfg *my_r_cfg = apr_palloc(r->pool, sizeof(r_cfg));
+	//apr_table_t	*params_table = apr_table_make(r->pool, 6);
+	//ap_set_module_config(r->request_config, &hoverin_module, params_table);
+	ap_set_module_config(r->request_config, &hoverin_module, my_r_cfg);
+	my_r_cfg->params_table = NULL;
+	//parse_get_params(r, r->parsed_uri.query);
 	
 }
 
@@ -155,9 +164,11 @@ static const char *get_parameter(request_rec *r, const char *param)
 		return;
 	}
 	//apr_table_t *params_table = NULL;
-	apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
+	//apr_table_t *params_table = ap_get_module_config(r->request_config, &hoverin_module);
 	//apr_table_t *params_table = apr_table_make(r->pool, 6);
 	//parse_get_params(r, r->parsed_uri.query);
+	r_cfg  *my_r_cfg = ap_get_module_config(r->request_config, &hoverin_module);
+	apr_table_t *params_table = my_r_cfg->params_table;
 	if (params_table == NULL) {
 		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "table is null");
 		//params_table = parse_get_params(r, r->parsed_uri.query);
@@ -410,8 +421,9 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 	apr_bucket *b;
 	const char *current_host = f->r->hostname;
 	int count = 0;
+	apr_off_t length;
 	//ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "count = %d", count++);
-	
+	apr_table_unset(f->r->headers_out, "Content-Length");
 	hoverin_ctx *ctx = (hoverin_ctx *) f->ctx;
 	if (ctx == NULL) {
 		hoverin_filter_init(f);
@@ -425,7 +437,7 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 		return ap_pass_brigade(f->next, bb);
 		
 	}
-	
+	parse_query(f->r);
 	/*	Insert the footer at the end of the brigade. */
 	if ( ctx->foot && ! ( ctx->state & TXT_FOOT ) ) {
 			b = APR_BRIGADE_LAST(bb) ;
@@ -445,11 +457,23 @@ static int hoverin_filter(ap_filter_t *f, apr_bucket_brigade *bb)
 	
 	/* Header and Footer added to the response, now add the comment */
 	//if (count == 0) {
-		parse_query(f->r);
+
+	/*apr_table_t *params_table = ap_get_module_config(f->r->request_config,
+										&hoverin_module);*/
+	r_cfg *my_r_cfg = ap_get_module_config(f->r->request_config, &hoverin_module);
+	apr_table_t *params_table = my_r_cfg->params_table;
+	if (params_table == NULL) {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r, "parsing query");
+		//parse_query(f->r);
+		parse_get_params(f->r, f->r->parsed_uri.query);
 		add_comment(f->r, bb);
 		modify_header(f->r, bb);
 	//}
+	}
 	count++;
+	apr_brigade_length(bb, 1, &length);
+	apr_table_set(f->r->headers_out, "Content-Length", (const char *) apr_itoa(f->r->pool, length));
+
 	return ap_pass_brigade(f->next, bb);
 	//return OK;
 }
@@ -484,7 +508,11 @@ static const command_rec hoverin_cmds[] = {
 static void hoverin_hooks(apr_pool_t *pool)
 {
 	//ap_hook_post_read_request(parse_query, NULL, NULL, APR_HOOK_FIRST);
-	ap_register_output_filter(name, hoverin_filter, hoverin_filter_init, AP_FTYPE_RESOURCE);
+	//ap_register_output_filter(name, hoverin_filter, hoverin_filter_init, AP_FTYPE_RESOURCE);
+	ap_register_output_filter_protocol(name, hoverin_filter,
+			hoverin_filter_init, AP_FTYPE_RESOURCE,
+			AP_FILTER_PROTO_CHANGE|AP_FILTER_PROTO_CHANGE_LENGTH) ;
+	  //ap_hook_post_config(line_edit, NULL, NULL, APR_HOOK_MIDDLE) ;
 }
 
 /* the module data structure */
