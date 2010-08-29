@@ -92,8 +92,8 @@ static void parse_get_params(request_rec *r, const char *querystring)
 	r_cfg *my_r_cfg = ap_get_module_config(r->request_config, &hoverin_module);
 	apr_table_t *params_table = my_r_cfg->params_table;
 	if (my_r_cfg->params_table == NULL) {
-			ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "params_table is NULL!");
-			return;
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "params_table is NULL!");
+		return;
 	}
 	/* if there is no querystring attached with this url, then leave */
 	if (querystring == NULL) {
@@ -290,8 +290,8 @@ static void add_comment(request_rec *r, apr_bucket_brigade *bb)
 }
 
 /**
-	Function to generate the javascript variable HOVER to be inserted in the
-	HEADER.
+*	Function to generate the javascript variable HOVER to be inserted in the
+*	HEADER.
 */
 static void modify_header(request_rec *r, apr_bucket_brigade *bb)
 {
