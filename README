@@ -2,12 +2,38 @@ mod_hoverin:
 Author: Abhinav Upadhyay (abhinav@hover.in)
 
 Table Of Contents::
+	0. About mod_hoverin
 	1. Prerequisites
 	2. Installing mod_hoverin
 	3. Configuring mod_hoverin
 	4. Troubleshooting
 	5. Known Issues with mod_hoverin
 	
+0. About mod_hoverin:
+	0.1 I developed mod_hoverin during my 3 months summer internship for Hover Technologies
+	    Pvt. Ltd. (http://hover.in). Hover Technologies have developed a unique product of contextual
+	    intext advertising and content publishing. Their flahship product is called "Hoverlet". 
+	    You can check the demos here: http://start.hover.in/#demo1.
+	    
+	    PROBLEM:If a content publisher wants to use this product, then at the minimum he has to *MANUALLY* 
+	    insert some snippets of Javascript code in their web pages or blogs. While not a lot of work, but still
+	    for more than a couple of web pages, this can get very tiring to do because for the javascript
+	    
+	    So some way of automating this process was required for large content publishers (like professional bloggers).
+	    
+	    SOLUTION: mod_hoverin is the solution to the problem. It allows the web master to insert a header and footer 
+	    (which can be configured) in the requested pages. So it can be used to insert that javascript snippet in the 
+	    pages. The module goes one step ahead and parses the URL for some keywords, which tells from where to get the
+	    data, e.g. linkedin, youtube, twitter, facebook, etc. Effectively it parses the URL, extracts the keywords 
+	    and makes a custom javascript snippet as per the URL. 
+	    
+	0.2 Additional Features: 
+			The module can be configured for individual Virtual hosts. It implements a directive 
+	    	(mod_hoverin_hosts) using which the admin can specify the hosts for which the module needs to work. 
+	    	
+	    	mod_hoverin_header and mod_hoverin_footer are other two directives implemented by the module, which
+	    	let the admin specify the header and footer to be inserted in the pages. 
+	    
 	
 1. Prerequisites:
 	1.1 In order to be able to install this module the user will need the 
