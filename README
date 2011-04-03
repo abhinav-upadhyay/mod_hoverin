@@ -19,13 +19,16 @@ Table Of Contents::
 	    insert some snippets of Javascript code in their web pages or blogs. While not a lot of work, but still
 	    for more than a couple of web pages, this can get very tiring to do because for the javascript
 	    
-	    So some way of automating this process was required for large content publishers (like professional bloggers).
+	    So some way of automating this process was required for large content publishers (like
+	    professional bloggers).
 	    
-	    SOLUTION: mod_hoverin is the solution to the problem. It allows the web master to insert a header and footer 
-	    (which can be configured) in the requested pages. So it can be used to insert that javascript snippet in the 
-	    pages. The module goes one step ahead and parses the URL for some keywords, which tells from where to get the
-	    data, e.g. linkedin, youtube, twitter, facebook, etc. Effectively it parses the URL, extracts the keywords 
-	    and makes a custom javascript snippet as per the URL. 
+	    SOLUTION: mod_hoverin is the solution to the problem. It allows the web master 
+	    to insert a header and footer (which can be configured) in the requested pages.
+	    So it can be used to insert that javascript snippet in the pages. The module 
+	    goes one step ahead and parses the URL for some keywords, which tells it from
+	    where to get the data, e.g. linkedin, youtube, twitter, facebook, etc. 
+	    Effectively it parses the URL, extracts the keywords and makes a custom javascript 
+	    snippet as per the URL.
 	    
 	0.2 Additional Features: 
 			The module can be configured for individual Virtual hosts. It implements a directive 
